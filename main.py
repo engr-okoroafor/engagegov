@@ -32,9 +32,16 @@ if "insights" not in st.session_state:
 if "current_ministry" not in st.session_state:
     st.session_state.current_ministry = "General"
 
-# Define ministries (hidden temporarily)
+# Define ministries
 ministries = [
-    "Health", "Agriculture", "Education", "Technology", "Infrastructure", "Transport", "Lands", "Immigration", "Military",
+    "Ministry of Foreign Affairs", "Ministry of Defense", "Ministry of Finance", "Ministry of Interior or Home Affairs",
+    "Ministry of Justice", "Ministry of Health", "Ministry of Education", "Ministry of Labor and Employment",
+    "Ministry of Agriculture", "Ministry of Environment, Energy, and Climate Change", "Ministry of Transport",
+    "Ministry of Housing and Urban Development", "Ministry of Trade and Industry", "Ministry of Science, Technology, and Innovation",
+    "Ministry of Culture and Heritage", "Ministry of Tourism", "Ministry of Social Development or Social Services",
+    "Ministry of Communications and Information", "Ministry of Youth and Sports", "Ministry of Public Administration",
+    "Ministry of Women and Child Development", "Ministry of Water Resources", "Ministry of Disaster Management and Relief",
+    "Ministry of Information Technology"
 ]
 
 # Main dashboard
@@ -140,15 +147,32 @@ if st.button("🚀Submit"):
     else:
         st.info("Processing your request...")
 
-        # Use Grok AI to analyze and route the query
-        response = generate_insights(user_query)  # Replace with actual Grok API call for routing
-        if selected_ministry == "General":
-            st.success("AI suggests routing to the appropriate ministry...")
-            # Example logic to determine ministry based on AI response
-            suggested_ministry = "Health"  # Replace with response['ministry'] from Grok API
-            st.write(f"This query is related to: **{suggested_ministry}**")
-        else:
-            st.success("Query processed successfully by the selected ministry!")
+        try:
+            # Use Grok AI to analyze and route the query
+            response = generate_insights(user_query)  # Replace with actual Grok API call for routing
+
+            # Check if the response is a string or text containing relevant keywords
+            if isinstance(response, str):
+                # Check if it contains keywords that suggest the relevant ministry
+                if "road" in response.lower() and ("maintenance" in response.lower() or "transport" in response.lower()):
+                    suggested_ministry = "Ministry of Transport"
+                elif "health" in response.lower():
+                    suggested_ministry = "Ministry of Health"
+                elif "agriculture" in response.lower():
+                    suggested_ministry = "Ministry of Agriculture"
+                elif "education" in response.lower():
+                    suggested_ministry = "Ministry of Education"
+                else:
+                    suggested_ministry = "General"
+                
+                st.success(f"AI suggests routing to the **{suggested_ministry}** ministry.")
+                st.write(f"This query is related to: **{suggested_ministry}**")
+            else:
+                st.error(f"❌Error: Grok AI response is not in the expected format. Response: {response}")
+                st.warning("Please try again later.")
+
+        except Exception as e:
+            st.error(f"❌An error occurred with Grok AI: {e}. Please try again later.")
 
         # Display AI-generated suggestions
         suggestions = summarize_text(user_query)  # Replace with Grok API for tailored advice
@@ -169,4 +193,3 @@ if st.button("🚀Generate Response"):
             st.markdown(content, unsafe_allow_html=True)
         else:
             st.error("❌Failed to generate content. Please try again.")
-            
