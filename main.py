@@ -57,7 +57,7 @@ uploaded_file = st.file_uploader("Upload a photo report (optional)", type=["png"
 if uploaded_file:
     file_size = uploaded_file.size / (1024 * 1024)  # File size in MB
     if file_size > 200:
-        st.error("File size exceeds 200MB. Please upload a smaller file.")
+        st.error("❌File size exceeds 200MB. Please upload a smaller file.")
     else:
         # Display uploaded image
         st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
@@ -112,17 +112,17 @@ if uploaded_file:
                     st.warning("Reconnecting...")
                     st.experimental_rerun()
             else:
-                st.error(f"An error occurred: {e}")
+                st.error(f"❌An error occurred: {e}")
                 st.warning("Please upload a valid image file (PNG, JPG, JPEG) and ensure it's under 200MB.")
 
 # Display the extracted text
 if st.session_state.extracted_text:
-    st.subheader("Extracted Text:")
+    st.subheader("📄Extracted Text:")
     st.text_area("Extracted Text", st.session_state.extracted_text, height=200)
 
 # Display the summary
 if st.session_state.summary:
-    st.subheader("Summary:")
+    st.subheader("📝Summary:")
     st.text_area("Summary", st.session_state.summary, height=150)
 
 # Display the insights
@@ -131,7 +131,7 @@ if st.session_state.insights:
     st.text_area("Insights", st.session_state.insights, height=150)
 
 # Text input for reporting or inquiries
-user_query = st.text_area("✍️...Describe your report")
+user_query = st.text_area("✍️...Describe your report.")
 
 # Handle submissions
 if st.button("🚀Submit"):
@@ -157,7 +157,7 @@ if st.button("🚀Submit"):
 
 # General content generation
 st.subheader("Ask the Government")
-prompt = st.text_area("Enter a topic for content generation in this ministry", "")
+prompt = st.text_area("✍️...Enter a topic for personalized advice.", "")
 if st.button("🚀Generate Response"):
     if not prompt.strip():
         st.error("Please provide a topic.")
