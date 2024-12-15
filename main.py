@@ -114,7 +114,7 @@ user_query = st.text_area("✍️...Describe your report or inquiry.")
 
 # Handle submissions
 processing_placeholder = st.empty()  # Placeholder for processing message
-if st.button("🚀Submit"):
+if st.button("Submit🚀"):
     if not user_query.strip() and not uploaded_file:
         st.error("Please provide text input or upload a photo.")
     else:
@@ -150,7 +150,7 @@ if st.button("🚀Submit"):
                 st.warning("Please try again later.")
 
             # Change the processing message to the success message after completion
-            processing_placeholder.success("✅Content generated successfully!")
+            processing_placeholder.success("✅ Content generated successfully!")
 
         except Exception as e:
             st.error(f"❌An error occurred with Grok AI: {e}. Please try again later.")
@@ -163,14 +163,14 @@ if st.button("🚀Submit"):
 # General content generation
 st.subheader("Ask the Government")
 prompt = st.text_area("✍️...Enter a topic for personalized advice.", "")
-if st.button("🚀Generate Response"):
+if st.button("Generate Response🚀"):
     if not prompt.strip():
         st.error("Please provide a topic.")
     else:
         with st.spinner("Generating content..."):
             content = generate_content(prompt, tone="Professional", temperature=0.7, max_tokens=1500)
         if content:
-            st.success("✅Content generated successfully!")
+            st.success("✅ Content generated successfully!")
             st.markdown(content, unsafe_allow_html=True)
         else:
             st.error("❌Failed to generate content. Please try again.")
