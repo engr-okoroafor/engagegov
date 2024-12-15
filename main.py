@@ -39,7 +39,7 @@ ministries = [
 
 # Main dashboard
 st.title("Citizen Engagement and Reporting Platform")
-st.sidebar.header("Ministry Navigation")
+st.sidebar.header("🌐Ministry Navigation")
 st.sidebar.write("Currently, only the General Reporting Channel is available.")
 
 # Sidebar for ministry navigation (only General visible)
@@ -48,7 +48,7 @@ selected_ministry = st.sidebar.radio(
 )
 st.session_state.current_ministry = selected_ministry
 
-st.header("General Reporting")
+st.header("📢General Reporting")
 
 # File uploader for image inputs
 uploaded_file = st.file_uploader("Upload a photo report (optional)", type=["png", "jpg", "jpeg"])
@@ -127,14 +127,14 @@ if st.session_state.summary:
 
 # Display the insights
 if st.session_state.insights:
-    st.subheader("Actionable Insights:")
+    st.subheader("💡Actionable Insights:")
     st.text_area("Insights", st.session_state.insights, height=150)
 
 # Text input for reporting or inquiries
-user_query = st.text_area("Describe your report")
+user_query = st.text_area("✍️...Describe your report")
 
 # Handle submissions
-if st.button("Submit"):
+if st.button("🚀Submit"):
     if not user_query.strip() and not uploaded_file:
         st.error("Please provide text input or upload a photo.")
     else:
@@ -158,15 +158,15 @@ if st.button("Submit"):
 # General content generation
 st.subheader("Ask the Government")
 prompt = st.text_area("Enter a topic for content generation in this ministry", "")
-if st.button("Generate Response"):
+if st.button("🚀Generate Response"):
     if not prompt.strip():
         st.error("Please provide a topic.")
     else:
         with st.spinner("Generating content..."):
             content = generate_content(prompt, tone="Professional", temperature=0.7, max_tokens=1500)
         if content:
-            st.success("Content generated successfully!")
+            st.success("✅Content generated successfully!")
             st.markdown(content, unsafe_allow_html=True)
         else:
-            st.error("Failed to generate content. Please try again.")
+            st.error("❌Failed to generate content. Please try again.")
             
