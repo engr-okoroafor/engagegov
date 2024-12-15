@@ -46,7 +46,7 @@ def extract_text_from_image(image_base64: str) -> str:
             }
         ],
         temperature=0.7,
-        max_tokens=500,
+        max_tokens=1000,
         n=1
     )
     return response.choices[0].message.content.strip()
@@ -70,7 +70,7 @@ def summarize_text(text: str) -> str:
             }
         ],
         temperature=0.7,
-        max_tokens=200,
+        max_tokens=500,
         n=1
     )
     return response.choices[0].message.content.strip()
@@ -94,7 +94,7 @@ def generate_insights(summary: str) -> str:
             }
         ],
         temperature=0.7,
-        max_tokens=200,
+        max_tokens=500,
         n=1
     )
     return response.choices[0].message.content.strip()

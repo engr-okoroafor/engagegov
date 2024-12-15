@@ -4,24 +4,6 @@ from helpers.image_utils import encode_image_to_base64
 from helpers.api_utils import extract_text_from_image, summarize_text, generate_insights
 from helpers.content_generator import generate_content  # Importing the content generation function
 
-# Function to check network status with a delay
-def check_network_status():
-    network_status = st.components.v1.html(
-        """
-        <script>
-            function checkNetworkStatus() {
-                if (!navigator.onLine) {
-                    setTimeout(function() {
-                        window.parent.postMessage({isOffline: true}, "*");
-                    }, 3000);  // 3 seconds delay before notifying the parent component
-                }
-            }
-            checkNetworkStatus();
-        </script>
-        """, height=0, width=0
-    )
-    return network_status
-
 # Initialize session state variables
 if "extracted_text" not in st.session_state:
     st.session_state.extracted_text = ""
@@ -32,9 +14,16 @@ if "insights" not in st.session_state:
 if "current_ministry" not in st.session_state:
     st.session_state.current_ministry = "General"
 
-# Define ministries (hidden temporarily)
+# Define ministries
 ministries = [
-    "Health", "Agriculture", "Education", "Technology", "Infrastructure", "Transport", "Lands", "Immigration", "Military",
+    "Ministry of Foreign Affairs", "Ministry of Defense", "Ministry of Finance", "Ministry of Interior or Home Affairs",
+    "Ministry of Justice", "Ministry of Health", "Ministry of Education", "Ministry of Labor and Employment",
+    "Ministry of Agriculture", "Ministry of Environment, Energy, and Climate Change", "Ministry of Transport",
+    "Ministry of Housing and Urban Development", "Ministry of Trade and Industry", "Ministry of Science, Technology, and Innovation",
+    "Ministry of Culture and Heritage", "Ministry of Tourism", "Ministry of Social Development or Social Services",
+    "Ministry of Communications and Information", "Ministry of Youth and Sports", "Ministry of Public Administration",
+    "Ministry of Women and Child Development", "Ministry of Water Resources", "Ministry of Disaster Management and Relief",
+    "Ministry of Information Technology"
 ]
 
 # Main dashboard
@@ -102,18 +91,8 @@ if uploaded_file:
             insights_placeholder.empty()
 
         except Exception as e:
-            # Handle error if the issue is not related to file format
-            if isinstance(e, FileNotFoundError):
-                # Check network status after 3 seconds
-                network_status = check_network_status()
-                # Here, we will need a mechanism to capture the offline message from JS
-                if network_status == 'offline':
-                    st.error("Network connection error. Please check your internet connection and try again.")
-                    st.warning("Reconnecting...")
-                    st.experimental_rerun()
-            else:
-                st.error(f"❌An error occurred: {e}")
-                st.warning("Please upload a valid image file (PNG, JPG, JPEG) and ensure it's under 200MB.")
+            st.error(f"❌An error occurred: {e}")
+            st.warning("Please upload a valid image file (PNG, JPG, JPEG) and ensure it's under 200MB.")
 
 # Display the extracted text
 if st.session_state.extracted_text:
@@ -131,24 +110,50 @@ if st.session_state.insights:
     st.text_area("Insights", st.session_state.insights, height=150)
 
 # Text input for reporting or inquiries
-user_query = st.text_area("✍️...Describe your report.")
+user_query = st.text_area("✍️...Describe your report or inquiry.")
 
 # Handle submissions
+processing_placeholder = st.empty()  # Placeholder for processing message
 if st.button("🚀Submit"):
     if not user_query.strip() and not uploaded_file:
         st.error("Please provide text input or upload a photo.")
     else:
-        st.info("Processing your request...")
+        processing_placeholder.info("Processing your request...")  # Show processing bubble
 
-        # Use Grok AI to analyze and route the query
-        response = generate_insights(user_query)  # Replace with actual Grok API call for routing
-        if selected_ministry == "General":
-            st.success("AI suggests routing to the appropriate ministry...")
-            # Example logic to determine ministry based on AI response
-            suggested_ministry = "Health"  # Replace with response['ministry'] from Grok API
-            st.write(f"This query is related to: **{suggested_ministry}**")
-        else:
-            st.success("Query processed successfully by the selected ministry!")
+        try:
+            # Use Grok AI to analyze and route the query
+            response = generate_insights(user_query)  # Replace with actual Grok API call for routing
+            st.write(f"AI Response: {response}")  # Debugging: Output the raw response to check
+
+            # Check if the response is a string or text containing relevant keywords
+            if isinstance(response, str):
+                # Check for keywords related to specific ministries
+                keywords = {
+                    "Ministry of Transport": ["road", "maintenance", "transport"],
+                    "Ministry of Health": ["health"],
+                    "Ministry of Agriculture": ["agriculture"],
+                    "Ministry of Education": ["education"],
+                    "Ministry of Disaster Management and Relief": ["disaster", "relief"]
+                }
+
+                suggested_ministry = "General"  # Default to "General"
+                for ministry, key_terms in keywords.items():
+                    if any(term in response.lower() for term in key_terms):
+                        suggested_ministry = ministry
+                        break  # Exit loop once the correct ministry is found
+
+                st.success(f"AI suggests routing to **{suggested_ministry}**.")
+                st.write(f"This query is related to: **{suggested_ministry}**")
+
+            else:
+                st.error(f"❌Error: Grok AI response is not in the expected format. Response: {response}")
+                st.warning("Please try again later.")
+
+            # Change the processing message to the success message after completion
+            processing_placeholder.success("✅Content generated successfully!")
+
+        except Exception as e:
+            st.error(f"❌An error occurred with Grok AI: {e}. Please try again later.")
 
         # Display AI-generated suggestions
         suggestions = summarize_text(user_query)  # Replace with Grok API for tailored advice
@@ -169,5 +174,3 @@ if st.button("🚀Generate Response"):
             st.markdown(content, unsafe_allow_html=True)
         else:
             st.error("❌Failed to generate content. Please try again.")
-            
-
