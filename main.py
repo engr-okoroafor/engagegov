@@ -1,4 +1,3 @@
-import time
 import streamlit as st
 from helpers.image_utils import encode_image_to_base64
 from helpers.api_utils import extract_text_from_image, summarize_text, generate_insights
@@ -112,13 +111,13 @@ if st.session_state.insights:
 # Text input for reporting or inquiries
 user_query = st.text_area("✍️...Describe your report or inquiry.")
 
-# Handle submissions
-processing_placeholder = st.empty()  # Placeholder for processing message
+# Handle submissions with placeholders for processing message
 if st.button("Submit🚀"):
+    processing_placeholder = st.empty()  # Placeholder for the spinner
     if not user_query.strip() and not uploaded_file:
         st.error("Please provide text input or upload a photo.")
     else:
-        processing_placeholder.info("Processing your request...")  # Show processing bubble
+        processing_placeholder.info("Processing your request...")  # Show processing message
 
         try:
             # Use Grok AI to analyze and route the query
@@ -164,13 +163,15 @@ if st.button("Submit🚀"):
 st.subheader("Ask the Government")
 prompt = st.text_area("✍️...Enter a topic for personalized advice.", "")
 if st.button("Generate Response🚀"):
+    processing_placeholder = st.empty()  # Create placeholder for the spinner
     if not prompt.strip():
         st.error("Please provide a topic.")
     else:
         with st.spinner("Generating content..."):
+            processing_placeholder.info("Processing your request...")  # Show processing message
             content = generate_content(prompt, tone="Professional", temperature=0.7, max_tokens=1500)
         if content:
-            st.success("✅ Content generated successfully!")
+            processing_placeholder.success("✅ Content generated successfully!")  # Show success message after processing
             st.markdown(content, unsafe_allow_html=True)
         else:
-            st.error("❌Failed to generate content. Please try again.")
+            processing_placeholder.error("❌ Failed to generate content. Please try again.")
