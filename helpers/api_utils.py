@@ -2,13 +2,16 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import os
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
+# Load both API keys from the .env file
+grok_api_key = os.getenv("XAI_API_KEY")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
 # Configure the OpenAI client for xAI's Grok API
-api_key = os.getenv("XAI_API_KEY")
 client = OpenAI(
-    api_key=api_key,
+    api_key=grok_api_key,  # Use Grok's API key for Grok API
     base_url="https://api.x.ai/v1",
 )
 
