@@ -1,177 +1,147 @@
 import streamlit as st
+import os
+import requests
+from dotenv import load_dotenv
+from typing import Optional
+from requests.exceptions import RequestException, ConnectionError
 from helpers.image_utils import encode_image_to_base64
 from helpers.api_utils import extract_text_from_image, summarize_text, generate_insights
-from helpers.content_generator import generate_content  # Importing the content generation function
+
+# Load environment variables
+load_dotenv()
+
+# Constants
+BASE_API_URL = "https://api.langflow.astra.datastax.com"
+LANGFLOW_ID = "a76d6046-9bc2-4704-b2d5-67d042b61b8d"
+FLOW_ID = "f9bf7aa5-05a2-432e-ae2f-2bb4dfd0fc4a"
+APPLICATION_TOKEN = os.getenv("APP_TOKEN")
+ENDPOINT = "engagegov"
 
 # Initialize session state variables
+if "response" not in st.session_state:
+    st.session_state.response = ""
 if "extracted_text" not in st.session_state:
     st.session_state.extracted_text = ""
 if "summary" not in st.session_state:
     st.session_state.summary = ""
 if "insights" not in st.session_state:
     st.session_state.insights = ""
-if "current_ministry" not in st.session_state:
-    st.session_state.current_ministry = "General"
 
-# Define ministries
-ministries = [
-    "Ministry of Foreign Affairs", "Ministry of Defense", "Ministry of Finance", "Ministry of Interior or Home Affairs",
-    "Ministry of Justice", "Ministry of Health", "Ministry of Education", "Ministry of Labor and Employment",
-    "Ministry of Agriculture", "Ministry of Environment, Energy, and Climate Change", "Ministry of Transport",
-    "Ministry of Housing and Urban Development", "Ministry of Trade and Industry", "Ministry of Science, Technology, and Innovation",
-    "Ministry of Culture and Heritage", "Ministry of Tourism", "Ministry of Social Development or Social Services",
-    "Ministry of Communications and Information", "Ministry of Youth and Sports", "Ministry of Public Administration",
-    "Ministry of Women and Child Development", "Ministry of Water Resources", "Ministry of Disaster Management and Relief",
-    "Ministry of Information Technology"
-]
+# Function to run the flow
+def run_flow(
+    message: str,
+    endpoint: str,
+    output_type: str = "chat",
+    input_type: str = "chat",
+    tweaks: Optional[dict] = None,
+    application_token: Optional[str] = None,
+) -> dict:
+    api_url = f"{BASE_API_URL}/lf/{LANGFLOW_ID}/api/v1/run/{endpoint}"
+    payload = {"input_value": message, "output_type": output_type, "input_type": input_type}
+    headers = {"Authorization": f"Bearer {application_token}", "Content-Type": "application/json"}
 
-# Main dashboard
+    try:
+        response = requests.post(api_url, json=payload, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except ConnectionError:
+        st.error("Network error: Unable to reach the API. Please check your internet connection or try again later.")
+        return None
+    except RequestException as e:
+        st.error(f"An error occurred while contacting the API: {e}")
+        return None
+    except ValueError as e:
+        st.error(f"Failed to decode JSON from the response: {e}")
+        return None
+
+# Streamlit Interface
+st.set_page_config(page_title="Citizen Engagement and Reporting Platform", layout="wide")
 st.title("Citizen Engagement and Reporting Platform")
-st.sidebar.header("🌐Ministry Navigation")
-st.sidebar.write("Currently, only the General Reporting Channel is available.")
 
-# Sidebar for ministry navigation (only General visible)
-selected_ministry = st.sidebar.radio(
-    "Select Ministry", options=["General"]
-)
-st.session_state.current_ministry = selected_ministry
-
-st.header("📢General Reporting")
-
-# File uploader for image inputs
+# Image Analysis Section
+st.header("📷 Image Analysis")
 uploaded_file = st.file_uploader("Upload a photo report (optional)", type=["png", "jpg", "jpeg"])
 
-# Check file validity
 if uploaded_file:
     file_size = uploaded_file.size / (1024 * 1024)  # File size in MB
     if file_size > 200:
-        st.error("❌File size exceeds 200MB. Please upload a smaller file.")
+        st.error("❌ File size exceeds 200MB. Please upload a smaller file.")
     else:
-        # Display uploaded image
         st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
-
-        # Save image temporarily
         with open("temp_image.jpg", "wb") as f:
             f.write(uploaded_file.read())
 
         try:
-            # Create placeholders for progress messages
-            encoding_placeholder = st.empty()
-            extracting_placeholder = st.empty()
-            summarizing_placeholder = st.empty()
-            insights_placeholder = st.empty()
-
-            # Encode image to Base64
-            encoding_placeholder.info("Encoding image...")
+            # Placeholders for step-by-step processing
+            processing_placeholder = st.empty()
+            
+            processing_placeholder.info("Encoding image...")
             image_base64 = encode_image_to_base64("temp_image.jpg")
-            encoding_placeholder.success("Image encoded successfully!")
+            processing_placeholder.info("Image encoded successfully!")
 
-            # Extract text from the image
-            extracting_placeholder.info("Extracting text from the image...")
+            processing_placeholder.info("Extracting text from the image...")
             st.session_state.extracted_text = extract_text_from_image(image_base64)
-            extracting_placeholder.success("Text extracted successfully!")
+            processing_placeholder.info("Text extracted successfully!")
 
-            # Summarize the extracted text automatically
             if st.session_state.extracted_text:
-                summarizing_placeholder.info("Summarizing text...")
+                processing_placeholder.info("Summarizing text...")
                 st.session_state.summary = summarize_text(st.session_state.extracted_text)
-                summarizing_placeholder.success("Text summarized successfully!")
+                processing_placeholder.info("Text summarized successfully!")
 
-            # Generate actionable insights automatically
             if st.session_state.summary:
-                insights_placeholder.info("Generating actionable insights...")
+                processing_placeholder.info("Generating actionable insights...")
                 st.session_state.insights = generate_insights(st.session_state.summary)
-                insights_placeholder.success("Insights generated successfully!")
-
-            # After all processing is done, clear placeholders
-            encoding_placeholder.empty()
-            extracting_placeholder.empty()
-            summarizing_placeholder.empty()
-            insights_placeholder.empty()
+                # Replace all messages with a final success message
+                processing_placeholder.success("✅ Content generated successfully!")
 
         except Exception as e:
-            st.error(f"❌An error occurred: {e}")
+            st.error(f"❌ An error occurred: {e}")
             st.warning("Please upload a valid image file (PNG, JPG, JPEG) and ensure it's under 200MB.")
 
-# Display the extracted text
+
+# Display Image Analysis Results
 if st.session_state.extracted_text:
-    st.subheader("📄Extracted Text:")
+    st.subheader("📄 Extracted Text:")
     st.text_area("Extracted Text", st.session_state.extracted_text, height=200)
 
-# Display the summary
 if st.session_state.summary:
-    st.subheader("📝Summary:")
+    st.subheader("📝 Summary:")
     st.text_area("Summary", st.session_state.summary, height=150)
 
-# Display the insights
 if st.session_state.insights:
-    st.subheader("💡Actionable Insights:")
+    st.subheader("💡 Actionable Insights:")
     st.text_area("Insights", st.session_state.insights, height=150)
 
-# Text input for reporting or inquiries
-user_query = st.text_area("✍️...Describe your report or inquiry.")
+# General Reporting Section
+st.header("📢 General Reporting/Inquiry")
+query = st.text_area("✍️ Describe your report or inquiry:", placeholder="What is the ministry in charge of fixing roads?", height=150)
 
-# Handle submissions with placeholders for processing message
-if st.button("Submit🚀"):
-    processing_placeholder = st.empty()  # Placeholder for the spinner
-    if not user_query.strip() and not uploaded_file:
+# Submit Query
+if st.button("Submit 🚀"):
+    if query.strip() == "" and not uploaded_file:
         st.error("Please provide text input or upload a photo.")
     else:
-        processing_placeholder.info("Processing your request...")  # Show processing message
-
         try:
-            # Use Grok AI to analyze and route the query
-            response = generate_insights(user_query)  # Replace with actual Grok API call for routing
-            st.write(f"AI Response: {response}")  # Debugging: Output the raw response to check
+            with st.spinner("Loading... Please wait."):
+                response = run_flow(message=query, endpoint=ENDPOINT, application_token=APPLICATION_TOKEN)
 
-            # Check if the response is a string or text containing relevant keywords
-            if isinstance(response, str):
-                # Check for keywords related to specific ministries
-                keywords = {
-                    "Ministry of Transport": ["road", "maintenance", "transport"],
-                    "Ministry of Health": ["health"],
-                    "Ministry of Agriculture": ["agriculture"],
-                    "Ministry of Education": ["education"],
-                    "Ministry of Disaster Management and Relief": ["disaster", "relief"]
-                }
+                if response:
+                    outputs = response.get("outputs", [])
+                    formatted_response = "\n\n".join(
+                        f"- {output.get('results', {}).get('message', {}).get('text', '')}" for item in outputs for output in item.get("outputs", [])
+                    )
+                    st.session_state.response = formatted_response or "No relevant outputs received from the API."
+                else:
+                    st.session_state.response = "No valid response received from the API."
 
-                suggested_ministry = "General"  # Default to "General"
-                for ministry, key_terms in keywords.items():
-                    if any(term in response.lower() for term in key_terms):
-                        suggested_ministry = ministry
-                        break  # Exit loop once the correct ministry is found
-
-                st.success(f"AI suggests routing to **{suggested_ministry}**.")
-                st.write(f"This query is related to: **{suggested_ministry}**")
-
-            else:
-                st.error(f"❌Error: Grok AI response is not in the expected format. Response: {response}")
-                st.warning("Please try again later.")
-
-            # Change the processing message to the success message after completion
-            processing_placeholder.success("✅ Content generated successfully!")
-
+                st.success("✅ Content generated successfully!")
         except Exception as e:
-            st.error(f"❌An error occurred with Grok AI: {e}. Please try again later.")
+            st.error(f"An unexpected error occurred: {e}")
 
-        # Display AI-generated suggestions
-        suggestions = summarize_text(user_query)  # Replace with Grok API for tailored advice
-        st.subheader("Suggestions and Insights")
-        st.text_area("Tailored Suggestions", suggestions, height=150)
+# Display AI Response
+if st.session_state.response:
+    st.subheader("💬 AI Response:")
+    st.markdown(st.session_state.response, unsafe_allow_html=True)
 
-# General content generation
-st.subheader("Ask the Government")
-prompt = st.text_area("✍️...Enter a topic for personalized advice.", "")
-if st.button("Generate Response🚀"):
-    processing_placeholder = st.empty()  # Create placeholder for the spinner
-    if not prompt.strip():
-        st.error("Please provide a topic.")
-    else:
-        with st.spinner("Generating content..."):
-            processing_placeholder.info("Processing your request...")  # Show processing message
-            content = generate_content(prompt, tone="Professional", temperature=0.7, max_tokens=1500)
-        if content:
-            processing_placeholder.success("✅ Content generated successfully!")  # Show success message after processing
-            st.markdown(content, unsafe_allow_html=True)
-        else:
-            processing_placeholder.error("❌ Failed to generate content. Please try again.")
+# Footer
+st.markdown("**Developed with ❤️ by [Chukwudifu Uzoma Okoroafor, engr.okoroafor@gmail.com]**")
