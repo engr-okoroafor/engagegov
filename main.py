@@ -114,7 +114,7 @@ if st.session_state.insights:
 
 # General Reporting Section
 st.header("📢 General Reporting/Inquiry")
-query = st.text_area("✍️ Describe your report or inquiry:", placeholder="What is the ministry in charge of fixing roads?", height=150)
+query = st.text_area("✍️ Describe your report or inquiry:", placeholder="What initiatives exist for reducing unemployment?", height=150)
 
 # Submit Query
 if st.button("Submit 🚀"):
