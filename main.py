@@ -59,7 +59,7 @@ st.set_page_config(page_title="Citizen Engagement and Reporting Platform", layou
 st.title("Citizen Engagement and Reporting Platform")
 
 # Image Analysis Section
-st.header("📷 Image Analysis")
+st.header("📷 Upload Image Report")
 uploaded_file = st.file_uploader("Upload a photo report (optional)", type=["png", "jpg", "jpeg"])
 
 if uploaded_file:
