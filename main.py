@@ -18,49 +18,49 @@ APPLICATION_TOKEN = os.getenv("APP_TOKEN")
 ENDPOINT = "engagegov"
 
 # Initialize session state variables
-if "response" not in st.session_state:
-    st.session_state.response = ""
-if "extracted_text" not in st.session_state:
-    st.session_state.extracted_text = ""
-if "summary" not in st.session_state:
-    st.session_state.summary = ""
-if "insights" not in st.session_state:
-    st.session_state.insights = ""
+state_keys = ["response", "extracted_text", "summary", "insights"]
+for key in state_keys:
+    if key not in st.session_state:
+        st.session_state[key] = ""
 
-# Function to run the flow
-def run_flow(
-    message: str,
-    endpoint: str,
-    output_type: str = "chat",
-    input_type: str = "chat",
-    tweaks: Optional[dict] = None,
-    application_token: Optional[str] = None,
-) -> dict:
+
+# Utility function for API calls
+def run_flow(message: str, endpoint: str, application_token: Optional[str]) -> dict:
     api_url = f"{BASE_API_URL}/lf/{LANGFLOW_ID}/api/v1/run/{endpoint}"
-    payload = {"input_value": message, "output_type": output_type, "input_type": input_type}
-    headers = {"Authorization": f"Bearer {application_token}", "Content-Type": "application/json"}
+    payload = {"input_value": message, "output_type": "chat", "input_type": "chat"}
+    headers = {
+        "Authorization": f"Bearer {application_token}",
+        "Content-Type": "application/json",
+    }
 
     try:
         response = requests.post(api_url, json=payload, headers=headers)
         response.raise_for_status()
         return response.json()
     except ConnectionError:
-        st.error("Network error: Unable to reach the API. Please check your internet connection or try again later.")
-        return None
+        st.error(
+            "Network error: Unable to reach the API. Please check your connection."
+        )
     except RequestException as e:
-        st.error(f"An error occurred while contacting the API: {e}")
-        return None
+        st.error(f"API error: {e}")
     except ValueError as e:
-        st.error(f"Failed to decode JSON from the response: {e}")
-        return None
+        st.error(f"Invalid API response format: {e}")
+    return None
 
-# Streamlit Interface
-st.set_page_config(page_title="Citizen Engagement and Reporting Platform", layout="wide")
+
+# Streamlit Configuration
+st.set_page_config(
+    page_title="Citizen Engagement Platform",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 st.title("Citizen Engagement and Reporting Platform")
 
-# Image Analysis Section
+# Image Upload Section
 st.header("📷 Upload Image Report")
-uploaded_file = st.file_uploader("Upload a photo report (optional)", type=["png", "jpg", "jpeg"])
+uploaded_file = st.file_uploader(
+    "Upload a photo report (optional)", type=["png", "jpg", "jpeg"]
+)
 
 if uploaded_file:
     file_size = uploaded_file.size / (1024 * 1024)  # File size in MB
@@ -68,38 +68,31 @@ if uploaded_file:
         st.error("❌ File size exceeds 200MB. Please upload a smaller file.")
     else:
         st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
-        with open("temp_image.jpg", "wb") as f:
-            f.write(uploaded_file.read())
-
         try:
-            # Placeholders for step-by-step processing
-            processing_placeholder = st.empty()
-            
-            processing_placeholder.info("Encoding image...")
-            image_base64 = encode_image_to_base64("temp_image.jpg")
-            processing_placeholder.info("Image encoded successfully!")
+            # Save and process image
+            temp_image_path = "temp_image.jpg"
+            with open(temp_image_path, "wb") as f:
+                f.write(uploaded_file.read())
 
-            processing_placeholder.info("Extracting text from the image...")
+            processing_placeholder = st.empty()
+            processing_placeholder.info("Processing image...")
+
+            image_base64 = encode_image_to_base64(temp_image_path)
             st.session_state.extracted_text = extract_text_from_image(image_base64)
-            processing_placeholder.info("Text extracted successfully!")
 
             if st.session_state.extracted_text:
-                processing_placeholder.info("Summarizing text...")
-                st.session_state.summary = summarize_text(st.session_state.extracted_text)
-                processing_placeholder.info("Text summarized successfully!")
-
-            if st.session_state.summary:
-                processing_placeholder.info("Generating actionable insights...")
+                st.session_state.summary = summarize_text(
+                    st.session_state.extracted_text
+                )
                 st.session_state.insights = generate_insights(st.session_state.summary)
-                # Replace all messages with a final success message
-                processing_placeholder.success("✅ Content generated successfully!")
+                processing_placeholder.success("✅ Analysis completed successfully!")
+            else:
+                processing_placeholder.error("No text extracted from the image.")
 
         except Exception as e:
-            st.error(f"❌ An error occurred: {e}")
-            st.warning("Please upload a valid image file (PNG, JPG, JPEG) and ensure it's under 200MB.")
+            st.error(f"Error processing the image: {e}")
 
-
-# Display Image Analysis Results
+# Display Results
 if st.session_state.extracted_text:
     st.subheader("📄 Extracted Text:")
     st.text_area("Extracted Text", st.session_state.extracted_text, height=200)
@@ -114,34 +107,61 @@ if st.session_state.insights:
 
 # General Reporting Section
 st.header("📢 General Reporting/Inquiry")
-query = st.text_area("✍️ Describe your report or inquiry:", placeholder="What initiatives exist for reducing unemployment?", height=150)
+query = st.text_area(
+    "✍️ Describe your report or inquiry:",
+    placeholder="What initiatives exist for reducing unemployment?",
+    height=150,
+)
 
 # Submit Query
 if st.button("Submit 🚀"):
-    if query.strip() == "" and not uploaded_file:
+    if not query.strip() and not uploaded_file:
         st.error("Please provide text input or upload a photo.")
     else:
         try:
-            with st.spinner("Loading... Please wait."):
-                response = run_flow(message=query, endpoint=ENDPOINT, application_token=APPLICATION_TOKEN)
-
+            with st.spinner("Processing your request..."):
+                response = run_flow(query, ENDPOINT, APPLICATION_TOKEN)
                 if response:
                     outputs = response.get("outputs", [])
-                    formatted_response = "\n\n".join(
-                        f"- {output.get('results', {}).get('message', {}).get('text', '')}" for item in outputs for output in item.get("outputs", [])
+                    st.session_state.response = (
+                        "\n\n".join(
+                            f"- {output.get('results', {}).get('message', {}).get('text', '')}"
+                            for item in outputs
+                            for output in item.get("outputs", [])
+                        )
+                        or "No outputs received from the API."
                     )
-                    st.session_state.response = formatted_response or "No relevant outputs received from the API."
                 else:
-                    st.session_state.response = "No valid response received from the API."
-
-                st.success("✅ Content generated successfully!")
+                    st.session_state.response = "No valid response received."
         except Exception as e:
-            st.error(f"An unexpected error occurred: {e}")
+            st.error(f"Unexpected error: {e}")
 
-# Display AI Response
+# Display User Query in Light Blue Bubble
+if query.strip():
+    st.markdown("#### 👤 User:")
+    st.markdown(
+        f"""
+        <div style="background-color:rgb(241, 252, 253); color: #005662; padding: 10px; border-radius: 10px; width: fit-content; max-width: 90%; word-wrap: break-word;">
+            {query}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# Display AI Response in Light Green Bubble
 if st.session_state.response:
     st.subheader("💬 AI Response:")
-    st.markdown(st.session_state.response, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div style="background-color:rgb(223, 250, 229); color:rgb(7, 29, 13); padding: 10px; border-radius: 10px; width: fit-content; max-width: 90%; word-wrap: break-word;">
+            {st.session_state.response.replace('\n', '<br>')}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # Footer
-st.markdown("**Developed with ❤️ by [Chukwudifu Uzoma Okoroafor, engr.okoroafor@gmail.com]**")
+st.markdown(
+    "<br><hr><center><b>Developed with ❤️ by Chukwudifu Uzoma Okoroafor</b> | Contact: engr.okoroafor@gmail.com</center><hr>",
+    unsafe_allow_html=True,
+)
