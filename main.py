@@ -67,7 +67,7 @@ if uploaded_file:
     if file_size > 200:
         st.error("❌ File size exceeds 200MB. Please upload a smaller file.")
     else:
-        st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+        st.image(uploaded_file, caption="Uploaded Image", use_container_width=True)
         try:
             # Save and process image
             temp_image_path = "temp_image.jpg"
