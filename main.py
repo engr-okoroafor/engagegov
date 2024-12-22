@@ -18,10 +18,10 @@ APPLICATION_TOKEN = os.getenv("APP_TOKEN")
 ENDPOINT = "engagegov"
 
 # Initialize session state variables
-state_keys = ["response", "extracted_text", "summary", "insights"]
+state_keys = ["response_history", "extracted_text", "summary", "insights"]
 for key in state_keys:
     if key not in st.session_state:
-        st.session_state[key] = ""
+        st.session_state[key] = [] if key == "response_history" else ""
 
 
 # Utility function for API calls
@@ -92,7 +92,7 @@ if uploaded_file:
         except Exception as e:
             st.error(f"Error processing the image: {e}")
 
-# Display Results
+# Display Results for Image Reporting
 if st.session_state.extracted_text:
     st.subheader("📄 Extracted Text:")
     st.text_area("Extracted Text", st.session_state.extracted_text, height=200)
@@ -114,16 +114,17 @@ query = st.text_area(
 )
 
 # Submit Query
-if st.button("Submit 🚀"):
-    if not query.strip() and not uploaded_file:
-        st.error("Please provide text input or upload a photo.")
+if st.button("Submit 🚀", key="submit_button"):
+    if not query.strip():
+        st.error("Please provide text input.")
     else:
         try:
             with st.spinner("Processing your request..."):
                 response = run_flow(query, ENDPOINT, APPLICATION_TOKEN)
+                ai_response = ""
                 if response:
                     outputs = response.get("outputs", [])
-                    st.session_state.response = (
+                    ai_response = (
                         "\n\n".join(
                             f"- {output.get('results', {}).get('message', {}).get('text', '')}"
                             for item in outputs
@@ -132,33 +133,37 @@ if st.button("Submit 🚀"):
                         or "No outputs received from the API."
                     )
                 else:
-                    st.session_state.response = "No valid response received."
+                    ai_response = "No valid response received."
+
+                # Add the query-response pair to the history
+                st.session_state.response_history.insert(
+                    0, {"query": query, "response": ai_response}
+                )
         except Exception as e:
             st.error(f"Unexpected error: {e}")
 
-# Display User Query in Light Blue Bubble
-if query.strip():
-    st.markdown("#### 👤 User:")
-    st.markdown(
-        f"""
-        <div style="background-color:rgb(240, 227, 254); color: #005662; padding: 10px; border-radius: 10px; width: fit-content; max-width: 90%; word-wrap: break-word;">
-            {query}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-# Display AI Response in Light Green Bubble
-if st.session_state.response:
-    st.subheader("💬 AI Response:")
-    st.markdown(
-        f"""
-        <div style="background-color:rgb(223, 250, 229); color:rgb(7, 29, 13); padding: 10px; border-radius: 10px; width: fit-content; max-width: 90%; word-wrap: break-word;">
-            {st.session_state.response.replace('\n', '<br>')}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+# Display Query-Response History
+if st.session_state.response_history:
+    st.subheader("🗂️ Query-Response History")
+    for i, entry in enumerate(st.session_state.response_history):
+        st.markdown("#### 👤 User:")
+        st.markdown(
+            f"""
+            <div style="background-color:rgb(240, 227, 254); color:rgb(5, 25, 27); padding: 10px; border-radius: 10px; width: fit-content; max-width: 90%; word-wrap: break-word;">
+                {entry['query']}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("#### 💬 AI Response:")
+        st.markdown(
+            f"""
+            <div style="background-color:rgb(223, 250, 229); color:rgb(7, 29, 13); padding: 10px; border-radius: 10px; width: fit-content; max-width: 90%; word-wrap: break-word;">
+                {entry['response'].replace('\n', '<br>')}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 # Footer
 st.markdown(
