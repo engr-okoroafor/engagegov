@@ -141,7 +141,7 @@ if query.strip():
     st.markdown("#### 👤 User:")
     st.markdown(
         f"""
-        <div style="background-color:rgb(241, 252, 253); color: #005662; padding: 10px; border-radius: 10px; width: fit-content; max-width: 90%; word-wrap: break-word;">
+        <div style="background-color:rgb(240, 227, 254); color: #005662; padding: 10px; border-radius: 10px; width: fit-content; max-width: 90%; word-wrap: break-word;">
             {query}
         </div>
         """,
