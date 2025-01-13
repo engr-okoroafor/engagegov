@@ -10,11 +10,11 @@ grok_api_key = os.getenv("XAI_API_KEY")
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
 # Configure the OpenAI client for xAI's Grok API
-api_key = os.getenv("XAI_API_KEY")
 client = OpenAI(
-    api_key=api_key,
+    api_key=grok_api_key,
     base_url="https://api.x.ai/v1",
 )
+
 
 def extract_text_from_image(image_base64: str) -> str:
     """
@@ -26,30 +26,34 @@ def extract_text_from_image(image_base64: str) -> str:
     Returns:
         str: Extracted text from the image.
     """
-    response = client.chat.completions.create(
-        model="grok-vision-beta",
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "Extract and give me the text in the image provided, and nothing else no intro"
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{image_base64}"
+    try:
+        response = client.chat.completions.create(
+            model="grok-vision-beta",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Extract and give me the text in the image provided, and nothing else no intro"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
                         }
-                    }
-                ]
-            }
-        ],
-        temperature=0.7,
-        max_tokens=1000,
-        n=1
-    )
-    return response.choices[0].message.content.strip()
+                    ]
+                }
+            ],
+            temperature=0.7,
+            max_tokens=1000,
+            n=1
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        raise RuntimeError(f"Error extracting text from image: {e}")
+
 
 def summarize_text(text: str) -> str:
     """
@@ -61,19 +65,23 @@ def summarize_text(text: str) -> str:
     Returns:
         str: Summary of the text.
     """
-    response = client.chat.completions.create(
-        model="grok-beta",
-        messages=[
-            {
-                "role": "user",
-                "content": f"Summarize the following text:\n\n{text}"
-            }
-        ],
-        temperature=0.7,
-        max_tokens=500,
-        n=1
-    )
-    return response.choices[0].message.content.strip()
+    try:
+        response = client.chat.completions.create(
+            model="grok-beta",
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Summarize the following text:\n\n{text}"
+                }
+            ],
+            temperature=0.7,
+            max_tokens=500,
+            n=1
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        raise RuntimeError(f"Error summarizing text: {e}")
+
 
 def generate_insights(summary: str) -> str:
     """
@@ -85,16 +93,19 @@ def generate_insights(summary: str) -> str:
     Returns:
         str: Actionable insights derived from the summary.
     """
-    response = client.chat.completions.create(
-        model="grok-beta",
-        messages=[
-            {
-                "role": "user",
-                "content": f"Based on the following summary, generate actionable insights:\n\n{summary}"
-            }
-        ],
-        temperature=0.7,
-        max_tokens=500,
-        n=1
-    )
-    return response.choices[0].message.content.strip()
+    try:
+        response = client.chat.completions.create(
+            model="grok-beta",
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Based on the following summary, generate actionable insights:\n\n{summary}"
+                }
+            ],
+            temperature=0.7,
+            max_tokens=500,
+            n=1
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        raise RuntimeError(f"Error generating insights: {e}")
